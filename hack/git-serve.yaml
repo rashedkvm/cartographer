@@ -1,0 +1,6 @@
+---
+apiVersion: ops.tips/v1alpha1
+kind: GitServer
+metadata:
+  name: git-server
+spec: {}
