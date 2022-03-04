@@ -37,6 +37,7 @@ readonly KPACK_VERSION=0.5.1
 readonly SECRETGEN_CONTROLLER_VERSION=0.6.0
 readonly SOURCE_CONTROLLER_VERSION=0.17.0
 readonly TEKTON_VERSION=0.30.0
+readonly CARTOGRAPHER_LATEST_VERSION=$(curl -sL https://api.github.com/repos/vmware-tanzu/cartographer/releases/latest | jq -r ".tag_name")
 
 readonly GIT_WRITER_SSH_USER=${GIT_WRITER_SSH_USER:-"ssh://git"}
 readonly GIT_WRITER_SERVER=${GIT_WRITER_SERVER:-$HOST_ADDR}
@@ -70,6 +71,10 @@ main() {
 
                 cartographer)
                         install_cartographer_package
+                        ;;
+
+                cartographer-latest)
+                        install_cartographer_latest_release
                         ;;
 
                 example-dependencies)
@@ -129,6 +134,11 @@ install_cartographer_package() {
                 kapp deploy -a cartographer --yes \
                         -f ./release/package \
                         -f-
+}
+
+install_cartographer_latest_release() {
+        log "installing latest published cartographer release"
+        kapp deploy -a cartographer --yes -f https://github.com/vmware-tanzu/cartographer/releases/download/$CARTOGRAPHER_LATEST_VERSION/cartographer.yaml
 }
 
 show_usage_help() {
