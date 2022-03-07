@@ -16,13 +16,13 @@ package repository
 
 import (
 	"fmt"
+	"github.com/vmware-tanzu/cartographer/pkg/selector"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	"github.com/vmware-tanzu/cartographer/pkg/apis/v1alpha1"
-	"github.com/vmware-tanzu/cartographer/pkg/selector"
 )
 
 type SelectingObject interface {
@@ -73,7 +73,7 @@ func BestSelectorMatch(selectable Selectable, blueprints []SelectingObject) ([]S
 		size += len(labelSelector.MatchExpressions)
 
 		// -- Fields
-		allFieldsMatched, err := matchesAllFields(selectable, selectors.SelectorMatchFields)
+		allFieldsMatched, err := MatchesAllFields(selectable, selectors.SelectorMatchFields)
 		if err != nil {
 			// Todo: test in unit test
 			return nil, fmt.Errorf(
@@ -103,9 +103,76 @@ func BestSelectorMatch(selectable Selectable, blueprints []SelectingObject) ([]S
 	return matchingSelectors[highWaterMark], nil
 }
 
-func matchesAllFields(source Selectable, fields []v1alpha1.FieldSelectorRequirement) (bool, error) {
-	for _, requirement := range fields {
+
+type SelectingObject2 interface {
+	GetSelectors() v1alpha1.Selectors
+}
+
+func BestSelectorMatch2(selectable Selectable, selectingObjects []SelectingObject2) (bestMatched []SelectingObject2, errorObject SelectingObject2, matchError error) {
+	if len(selectingObjects) == 0 {
+		return nil, nil, nil
+	}
+
+	var matchingSelectors = map[int][]SelectingObject2{}
+	var highWaterMark = 0
+
+	for _, target := range selectingObjects {
+		selectors := target.GetSelectors()
+
+		size := 0
+		labelSelector := &metav1.LabelSelector{
+			MatchLabels:      selectors.Selector,
+			MatchExpressions: selectors.SelectorMatchExpressions,
+		}
+
+		// -- Labels
+		sel, err := metav1.LabelSelectorAsSelector(labelSelector)
+		if err != nil {
+			return nil, target, fmt.Errorf(
+				"selectorMatchExpressions or selectors are not valid: %w",
+				err,
+			)
+		}
+		if !sel.Matches(labels.Set(selectable.GetLabels())) {
+			continue // Bail early!
+		}
+
+		size += len(labelSelector.MatchLabels)
+		size += len(labelSelector.MatchExpressions)
+
+		// -- Fields
+		allFieldsMatched, err := MatchesAllFields(selectable, selectors.SelectorMatchFields)
+		if err != nil {
+			// Todo: test in unit test
+			return nil, target, fmt.Errorf(
+				"failed to evaluate all matched fields: %w",
+				err,
+			)
+		}
+		if !allFieldsMatched {
+			continue // Bail early!
+		}
+		size += len(selectors.SelectorMatchFields)
+
+		// -- decision time
+		if size > 0 {
+			if matchingSelectors[size] == nil {
+				matchingSelectors[size] = []SelectingObject2{}
+			}
+			if size > highWaterMark {
+				highWaterMark = size
+			}
+			matchingSelectors[size] = append(matchingSelectors[size], target)
+		}
+	}
+
+	return matchingSelectors[highWaterMark], nil, nil
+}
+
+func MatchesAllFields(source interface{}, requirements []v1alpha1.FieldSelectorRequirement) (bool, error) {
+	for _, requirement := range requirements {
 		match, err := selector.Matches(requirement, source)
+		//TODO: what happens if its JsonPathDoesNotExistError?
 		if err != nil {
 			return false, fmt.Errorf("unable to match field requirement with key [%s] operator [%s] values [%v]: %w", requirement.Key, requirement.Operator, requirement.Values, err)
 		}

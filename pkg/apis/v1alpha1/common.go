@@ -16,7 +16,6 @@ package v1alpha1
 
 import (
 	"fmt"
-
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -170,6 +169,8 @@ type TemplateOption struct {
 }
 
 type OptionSelector struct {
+	metav1.LabelSelector `json:",inline"`
+
 	// MatchFields is a list of field selector requirements. The requirements are ANDed.
 	// +kubebuilder:validation:MinItems=1
 	MatchFields []FieldSelectorRequirement `json:"matchFields"`

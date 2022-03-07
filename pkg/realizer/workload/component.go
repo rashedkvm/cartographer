@@ -17,17 +17,17 @@ package workload
 import (
 	"context"
 	"fmt"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	"github.com/vmware-tanzu/cartographer/pkg/apis/v1alpha1"
-	"github.com/vmware-tanzu/cartographer/pkg/eval"
 	"github.com/vmware-tanzu/cartographer/pkg/logger"
 	realizerclient "github.com/vmware-tanzu/cartographer/pkg/realizer/client"
 	"github.com/vmware-tanzu/cartographer/pkg/repository"
-	"github.com/vmware-tanzu/cartographer/pkg/selector"
 	"github.com/vmware-tanzu/cartographer/pkg/templates"
 )
 
@@ -166,48 +166,84 @@ func (r *resourceRealizer) Do(ctx context.Context, resource *v1alpha1.SupplyChai
 	return template, stampedObject, output, nil
 }
 
+//type SelectableObject struct {
+//	metav1.ObjectMeta `json:"metadata"`
+//	Spec              interface{} `json:"spec"`
+//}
+//
+
 func (r *resourceRealizer) findMatchingTemplateName(resource *v1alpha1.SupplyChainResource, supplyChainName string) (string, error) {
-	var templateName string
-	var matchingOptions []string
+
+	//repository.BestSelectorMatch2(r.workload, resource.TemplateRef.Options)
+	/* Here's copypasta version */
+	var matchingOptionTemplateNames = map[int][]string{}
+	var highWaterMark = 0
 
 	for _, option := range resource.TemplateRef.Options {
-		matchedAllFields := true
-		for _, field := range option.Selector.MatchFields {
-			wkContext := map[string]interface{}{
-				"spec":     r.workload.Spec,
-				"metadata": r.workload.ObjectMeta,
-			}
-			matched, err := selector.Matches(field, wkContext)
-			if err != nil {
-				if _, ok := err.(eval.JsonPathDoesNotExistError); !ok {
-					return "", ResolveTemplateOptionError{
-						Err:             err,
-						SupplyChainName: supplyChainName,
-						Resource:        resource,
-						OptionName:      option.Name,
-						Key:             field.Key,
-					}
-				}
-			}
-			if !matched {
-				matchedAllFields = false
-				break
-			}
+		selector := option.Selector
+
+		size := 0
+
+		// -- Labels
+		sel, err := metav1.LabelSelectorAsSelector(&selector.LabelSelector)
+		if err != nil {
+			return "", fmt.Errorf(
+				"matchLabels or matchExpressions of template option [%s] in supply chain resource [%s]  are not valid: %w",
+				option.Name,
+				resource.Name,
+				err,
+			)
 		}
-		if matchedAllFields {
-			matchingOptions = append(matchingOptions, option.Name)
+		if !sel.Matches(labels.Set(r.workload.Labels)) {
+			continue // Bail early!
+		}
+
+		size += len(selector.LabelSelector.MatchLabels)
+		size += len(selector.LabelSelector.MatchExpressions)
+
+		// -- Fields
+		//TODO: looks like we are extra careful to exclude Status, perhaps selector_matcher ought to as well
+		wkContext := map[string]interface{}{
+			"spec":     r.workload.Spec,
+			"metadata": r.workload.ObjectMeta,
+		}
+
+		allFieldsMatched, err := repository.MatchesAllFields(wkContext, selector.MatchFields)
+
+		if err != nil {
+			//TODO: what happens if JsonPathDoesNotExistError ?.. see also matchesAllFields in selector_matcher
+			return "", fmt.Errorf(
+				"failed to evaluate all matched fields of template option [%s] in supply chain resource [%s]: %w",
+				option.Name,
+				resource.Name,
+				err,
+			)
+		}
+		if !allFieldsMatched {
+			continue // Bail early!
+		}
+		size += len(selector.MatchFields)
+
+		// -- decision time
+		if size > 0 {
+			if matchingOptionTemplateNames[size] == nil {
+				matchingOptionTemplateNames[size] = []string{}
+			}
+			if size > highWaterMark {
+				highWaterMark = size
+			}
+			matchingOptionTemplateNames[size] = append(matchingOptionTemplateNames[size], option.Name)
 		}
 	}
 
-	if len(matchingOptions) != 1 {
+	bestMatchingTemplateNames := matchingOptionTemplateNames[highWaterMark]
+	if len(bestMatchingTemplateNames) != 1 {
 		return "", TemplateOptionsMatchError{
 			SupplyChainName: supplyChainName,
 			Resource:        resource,
-			OptionNames:     matchingOptions,
+			OptionNames:     matchingOptionTemplateNames[highWaterMark],
 		}
-	} else {
-		templateName = matchingOptions[0]
 	}
-
-	return templateName, nil
+	return bestMatchingTemplateNames[0], nil
+	/**/
 }
