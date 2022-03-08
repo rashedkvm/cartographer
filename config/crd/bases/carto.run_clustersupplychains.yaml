@@ -265,7 +265,6 @@ spec:
                                       - key
                                       - operator
                                       type: object
-                                    minItems: 1
                                     type: array
                                   matchLabels:
                                     additionalProperties:
@@ -277,8 +276,6 @@ spec:
                                       and the values array contains only "value".
                                       The requirements are ANDed.
                                     type: object
-                                required:
-                                - matchFields
                                 type: object
                             required:
                             - name

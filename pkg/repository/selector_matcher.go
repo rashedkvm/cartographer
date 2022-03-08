@@ -73,7 +73,7 @@ func BestSelectorMatch(selectable Selectable, blueprints []SelectingObject) ([]S
 		size += len(labelSelector.MatchExpressions)
 
 		// -- Fields
-		allFieldsMatched, err := MatchesAllFields(selectable, selectors.SelectorMatchFields)
+		allFieldsMatched, err := matchesAllFields(selectable, selectors.SelectorMatchFields)
 		if err != nil {
 			// Todo: test in unit test
 			return nil, fmt.Errorf(
@@ -104,72 +104,112 @@ func BestSelectorMatch(selectable Selectable, blueprints []SelectingObject) ([]S
 }
 
 
+
 type SelectingObject2 interface {
-	GetSelectors() v1alpha1.Selectors
+	GetSelector() v1alpha1.Selector
 }
 
-func BestSelectorMatch2(selectable Selectable, selectingObjects []SelectingObject2) (bestMatched []SelectingObject2, errorObject SelectingObject2, matchError error) {
-	if len(selectingObjects) == 0 {
-		return nil, nil, nil
-	}
+type SelectorMatchError interface {
+	error
+	GetSelectingObjectIndex() int
+}
 
-	var matchingSelectors = map[int][]SelectingObject2{}
+type selectorMatchError struct {
+	Err                  error
+	SelectingObjectIndex int
+}
+
+func (e selectorMatchError) Error() string {
+	return e.Err.Error()
+}
+
+func (e selectorMatchError) GetSelectingObjectIndex() int {
+	return e.SelectingObjectIndex
+}
+
+type TemplateOptionList []v1alpha1.TemplateOption
+
+func (l TemplateOptionList) EachSelectingObject(handler func(idx int, selectingObject SelectingObject2) SelectorMatchError) SelectorMatchError {
+	for idx, item := range l {
+		if err := handler(idx, item); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+type EnumerableSelectingObjects interface {
+	EachSelectingObject(handler func(index int, selectingObject SelectingObject2) SelectorMatchError) SelectorMatchError
+}
+
+func BestSelectorMatchIndices(selectable Selectable, selectingObjects EnumerableSelectingObjects) ([]int, SelectorMatchError) {
+
+	//	if len(selectingObjects) == 0 { //FIXME: is this behavior still preserved?
+	//		return nil, nil, nil
+	//	}
+
+	var matchingSelectorIndices = map[int][]int{}
 	var highWaterMark = 0
 
-	for _, target := range selectingObjects {
-		selectors := target.GetSelectors()
+	err := selectingObjects.EachSelectingObject(func(idx int, selectingObject SelectingObject2) SelectorMatchError {
+		selectors := selectingObject.GetSelector()
 
-		size := 0
+		matchScore := 0
 		labelSelector := &metav1.LabelSelector{
-			MatchLabels:      selectors.Selector,
-			MatchExpressions: selectors.SelectorMatchExpressions,
+			MatchLabels:      selectors.MatchLabels,
+			MatchExpressions: selectors.MatchExpressions,
 		}
 
 		// -- Labels
 		sel, err := metav1.LabelSelectorAsSelector(labelSelector)
 		if err != nil {
-			return nil, target, fmt.Errorf(
-				"selectorMatchExpressions or selectors are not valid: %w",
-				err,
-			)
+			return selectorMatchError{
+				Err:                  fmt.Errorf("selector matchLabels or matchExpressions are not valid: %w", err),
+				SelectingObjectIndex: idx,
+			}
 		}
 		if !sel.Matches(labels.Set(selectable.GetLabels())) {
-			continue // Bail early!
+			return nil // Bail early!
 		}
 
-		size += len(labelSelector.MatchLabels)
-		size += len(labelSelector.MatchExpressions)
+		matchScore += len(labelSelector.MatchLabels)
+		matchScore += len(labelSelector.MatchExpressions)
 
 		// -- Fields
-		allFieldsMatched, err := MatchesAllFields(selectable, selectors.SelectorMatchFields)
+		allFieldsMatched, err := matchesAllFields(selectable, selectors.MatchFields)
 		if err != nil {
 			// Todo: test in unit test
-			return nil, target, fmt.Errorf(
-				"failed to evaluate all matched fields: %w",
-				err,
-			)
+			return selectorMatchError{
+				Err:                  fmt.Errorf("failed to evaluate selector matchFields: %w", err),
+				SelectingObjectIndex: idx,
+			}
 		}
 		if !allFieldsMatched {
-			continue // Bail early!
+			return nil // Bail early!
 		}
-		size += len(selectors.SelectorMatchFields)
+		matchScore += len(selectors.MatchFields)
 
 		// -- decision time
-		if size > 0 {
-			if matchingSelectors[size] == nil {
-				matchingSelectors[size] = []SelectingObject2{}
+		if matchScore > 0 {
+			if matchingSelectorIndices[matchScore] == nil { //FIXME: needed?
+				matchingSelectorIndices[matchScore] = []int{}
 			}
-			if size > highWaterMark {
-				highWaterMark = size
+			if matchScore > highWaterMark {
+				highWaterMark = matchScore
 			}
-			matchingSelectors[size] = append(matchingSelectors[size], target)
+			matchingSelectorIndices[matchScore] = append(matchingSelectorIndices[matchScore], idx)
 		}
+		return nil
+	})
+
+	if err != nil {
+		return nil, err
 	}
 
-	return matchingSelectors[highWaterMark], nil, nil
+	return matchingSelectorIndices[highWaterMark], nil
 }
 
-func MatchesAllFields(source interface{}, requirements []v1alpha1.FieldSelectorRequirement) (bool, error) {
+func matchesAllFields(source interface{}, requirements []v1alpha1.FieldSelectorRequirement) (bool, error) {
 	for _, requirement := range requirements {
 		match, err := selector.Matches(requirement, source)
 		//TODO: what happens if its JsonPathDoesNotExistError?

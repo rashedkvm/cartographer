@@ -432,7 +432,7 @@ var _ = Describe("Resource", func() {
 						Options: []v1alpha1.TemplateOption{
 							{
 								Name: "template-not-chosen",
-								Selector: v1alpha1.OptionSelector{
+								Selector: v1alpha1.Selector{
 									MatchFields: []v1alpha1.FieldSelectorRequirement{
 										{
 											Key:      "spec.source.image",
@@ -443,7 +443,7 @@ var _ = Describe("Resource", func() {
 							},
 							{
 								Name: "template-chosen",
-								Selector: v1alpha1.OptionSelector{
+								Selector: v1alpha1.Selector{
 									MatchFields: []v1alpha1.FieldSelectorRequirement{
 										{
 											Key:      "spec.source.git.url",
@@ -543,8 +543,8 @@ var _ = Describe("Resource", func() {
 					Expect(template).To(BeNil())
 
 					Expect(err).To(HaveOccurred())
-					Expect(err.Error()).To(ContainSubstring(`failed to evaluate all matched fields of [/] template option [template-not-chosen]: unable to match field requirement with key [spec.env[?(@.name=="some-name")].bad] operator [Exists] values [[]]: evaluate: failed to find results: bad is not found`))
-
+					Expect(err.Error()).To(ContainSubstring(`error evaluating selector for template option [template-not-chosen] for resource [resource-1] in [ClusterSupplyChain/supply-chain-name]`))
+					Expect(err.Error()).To(ContainSubstring(`failed to evaluate selector matchFields: unable to match field requirement with key [spec.env[?(@.name=="some-name")].bad] operator [Exists] values [[]]: evaluate: failed to find results: bad is not found`))
 				})
 			})
 

@@ -17,9 +17,6 @@ package workload
 import (
 	"context"
 	"fmt"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
-
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -166,84 +163,29 @@ func (r *resourceRealizer) Do(ctx context.Context, resource *v1alpha1.SupplyChai
 	return template, stampedObject, output, nil
 }
 
-//type SelectableObject struct {
-//	metav1.ObjectMeta `json:"metadata"`
-//	Spec              interface{} `json:"spec"`
-//}
-//
-
 func (r *resourceRealizer) findMatchingTemplateName(resource *v1alpha1.SupplyChainResource, supplyChainName string) (string, error) {
+	bestMatchingTemplateOptionsIndices, err := repository.BestSelectorMatchIndices(r.workload, repository.TemplateOptionList(resource.TemplateRef.Options))
 
-	//repository.BestSelectorMatch2(r.workload, resource.TemplateRef.Options)
-	/* Here's copypasta version */
-	var matchingOptionTemplateNames = map[int][]string{}
-	var highWaterMark = 0
-
-	for _, option := range resource.TemplateRef.Options {
-		selector := option.Selector
-
-		size := 0
-
-		// -- Labels
-		sel, err := metav1.LabelSelectorAsSelector(&selector.LabelSelector)
-		if err != nil {
-			return "", fmt.Errorf(
-				"matchLabels or matchExpressions of template option [%s] in supply chain resource [%s]  are not valid: %w",
-				option.Name,
-				resource.Name,
-				err,
-			)
-		}
-		if !sel.Matches(labels.Set(r.workload.Labels)) {
-			continue // Bail early!
-		}
-
-		size += len(selector.LabelSelector.MatchLabels)
-		size += len(selector.LabelSelector.MatchExpressions)
-
-		// -- Fields
-		//TODO: looks like we are extra careful to exclude Status, perhaps selector_matcher ought to as well
-		wkContext := map[string]interface{}{
-			"spec":     r.workload.Spec,
-			"metadata": r.workload.ObjectMeta,
-		}
-
-		allFieldsMatched, err := repository.MatchesAllFields(wkContext, selector.MatchFields)
-
-		if err != nil {
-			//TODO: what happens if JsonPathDoesNotExistError ?.. see also matchesAllFields in selector_matcher
-			return "", fmt.Errorf(
-				"failed to evaluate all matched fields of template option [%s] in supply chain resource [%s]: %w",
-				option.Name,
-				resource.Name,
-				err,
-			)
-		}
-		if !allFieldsMatched {
-			continue // Bail early!
-		}
-		size += len(selector.MatchFields)
-
-		// -- decision time
-		if size > 0 {
-			if matchingOptionTemplateNames[size] == nil {
-				matchingOptionTemplateNames[size] = []string{}
-			}
-			if size > highWaterMark {
-				highWaterMark = size
-			}
-			matchingOptionTemplateNames[size] = append(matchingOptionTemplateNames[size], option.Name)
-		}
+	if err != nil {
+		return "", fmt.Errorf("error evaluating selector for template option [%s] for resource [%s] in [ClusterSupplyChain/%s]: %w",
+			resource.TemplateRef.Options[err.GetSelectingObjectIndex()].Name,
+			resource.Name,
+			supplyChainName,
+			err)
 	}
 
-	bestMatchingTemplateNames := matchingOptionTemplateNames[highWaterMark]
-	if len(bestMatchingTemplateNames) != 1 {
+	if len(bestMatchingTemplateOptionsIndices) != 1 {
+		var optionNames []string
+		for _, optionIndex := range bestMatchingTemplateOptionsIndices {
+			optionNames = append(optionNames, resource.TemplateRef.Options[optionIndex].Name)
+		}
+
 		return "", TemplateOptionsMatchError{
 			SupplyChainName: supplyChainName,
 			Resource:        resource,
-			OptionNames:     matchingOptionTemplateNames[highWaterMark],
+			OptionNames:     optionNames,
 		}
 	}
-	return bestMatchingTemplateNames[0], nil
-	/**/
+
+	return resource.TemplateRef.Options[bestMatchingTemplateOptionsIndices[0]].Name, nil
 }
