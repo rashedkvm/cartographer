@@ -45,18 +45,6 @@ type resourceRealizer struct {
 
 type ResourceRealizerBuilder func(secret *corev1.Secret, workload *v1alpha1.Workload, systemRepo repository.Repository, supplyChainParams []v1alpha1.BlueprintParam) (ResourceRealizer, error)
 
-type TemplateOptionList []v1alpha1.TemplateOption
-
-func (l TemplateOptionList) EachSelectingObject(handler func(idx int, selectingObject selector.SelectingObject) selector.SelectorMatchError) selector.SelectorMatchError {
-	for idx, item := range l {
-		if err := handler(idx, item); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-
 //counterfeiter:generate sigs.k8s.io/controller-runtime/pkg/client.Client
 func NewResourceRealizerBuilder(repositoryBuilder repository.RepositoryBuilder, clientBuilder realizerclient.ClientBuilder, cache repository.RepoCache) ResourceRealizerBuilder {
 	return func(secret *corev1.Secret, workload *v1alpha1.Workload, systemRepo repository.Repository, supplyChainParams []v1alpha1.BlueprintParam) (ResourceRealizer, error) {
@@ -177,7 +165,7 @@ func (r *resourceRealizer) Do(ctx context.Context, resource *v1alpha1.SupplyChai
 }
 
 func (r *resourceRealizer) findMatchingTemplateName(resource *v1alpha1.SupplyChainResource, supplyChainName string) (string, error) {
-	bestMatchingTemplateOptionsIndices, err := selector.BestSelectorMatchIndices(r.workload, TemplateOptionList(resource.TemplateRef.Options))
+	bestMatchingTemplateOptionsIndices, err := selector.BestSelectorMatchIndices(r.workload, selector.TemplateOptionList(resource.TemplateRef.Options))
 
 	if err != nil {
 		return "", ResolveTemplateOptionError{

@@ -8,6 +8,17 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 )
 
+type TemplateOptionList []v1alpha1.TemplateOption
+
+func (l TemplateOptionList) EachSelectingObject(handler func(idx int, selectingObject SelectingObject) SelectorMatchError) SelectorMatchError {
+	for idx, item := range l {
+		if err := handler(idx, item); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 type Selectable interface {
 	GetLabels() map[string]string
 }
