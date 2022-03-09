@@ -176,7 +176,7 @@ spec:
                           minLength: 1
                           type: string
                         options:
-                          description: Options is a list of template names and Selectors.
+                          description: Options is a list of template names and LegacySelector.
                             The templates must all be of type Kind. A template will
                             be selected if the deliverable matches the specified selector.
                             Only one template can be selected. Only one of Name and
@@ -188,8 +188,8 @@ spec:
                                 minLength: 1
                                 type: string
                               selector:
-                                description: Selector is a field query over a workload
-                                  or deliverable resource.
+                                description: Selector is a criteria to match against  a
+                                  workload or deliverable resource.
                                 properties:
                                   matchExpressions:
                                     description: matchExpressions is a list of label

@@ -27,7 +27,7 @@ import (
 )
 
 type SelectingObject interface {
-	GetSelectors() v1alpha1.Selectors
+	GetSelectors() v1alpha1.LegacySelector
 	GetObjectKind() schema.ObjectKind
 	GetName() string
 }

@@ -56,7 +56,7 @@ var _ = Describe("Webhook Validation", func() {
 							},
 						},
 					},
-					Selectors: v1alpha1.Selectors{
+					LegacySelector: v1alpha1.LegacySelector{
 						Selector: map[string]string{"integration-test": "workload-no-supply-chain"},
 					},
 					Params: []v1alpha1.BlueprintParam{
@@ -272,7 +272,7 @@ var _ = Describe("Webhook Validation", func() {
 								},
 							},
 						},
-						Selectors: v1alpha1.Selectors{
+						LegacySelector: v1alpha1.LegacySelector{
 							Selector: map[string]string{"integration-test": "workload-no-supply-chain"},
 						},
 					},
@@ -360,7 +360,7 @@ var _ = Describe("Webhook Validation", func() {
 							},
 						},
 					},
-					Selectors: v1alpha1.Selectors{
+					LegacySelector: v1alpha1.LegacySelector{
 						Selector:                 selector,
 						SelectorMatchExpressions: expressions,
 						SelectorMatchFields:      fields,
@@ -517,7 +517,7 @@ var _ = Describe("Webhook Validation", func() {
 		Context("selector is selecting on SelectorMatchFields", func() {
 			Context("valid field selector", func() {
 				BeforeEach(func() {
-					supplyChain.Spec.Selectors = v1alpha1.Selectors{
+					supplyChain.Spec.LegacySelector = v1alpha1.LegacySelector{
 						SelectorMatchFields: []v1alpha1.FieldSelectorRequirement{
 							{
 								Key:      "spec.env[0].something",
@@ -534,7 +534,7 @@ var _ = Describe("Webhook Validation", func() {
 
 			Context("invalid json path in field selector", func() {
 				BeforeEach(func() {
-					supplyChain.Spec.Selectors = v1alpha1.Selectors{
+					supplyChain.Spec.LegacySelector = v1alpha1.LegacySelector{
 						SelectorMatchFields: []v1alpha1.FieldSelectorRequirement{
 							{
 								Key:      "spec.env[0].{{}}",
@@ -550,7 +550,7 @@ var _ = Describe("Webhook Validation", func() {
 
 			Context("field selector is not in accepted list", func() {
 				BeforeEach(func() {
-					supplyChain.Spec.Selectors = v1alpha1.Selectors{
+					supplyChain.Spec.LegacySelector = v1alpha1.LegacySelector{
 						SelectorMatchFields: []v1alpha1.FieldSelectorRequirement{
 							{
 								Key:      "foo",
@@ -568,7 +568,7 @@ var _ = Describe("Webhook Validation", func() {
 		Context("selector is selecting on SelectorMatchExpressions", func() {
 			Context("there is a valid selector", func() {
 				BeforeEach(func() {
-					supplyChain.Spec.Selectors = v1alpha1.Selectors{
+					supplyChain.Spec.LegacySelector = v1alpha1.LegacySelector{
 						SelectorMatchExpressions: []metav1.LabelSelectorRequirement{
 							{
 								Key:      "my-label",
@@ -585,7 +585,7 @@ var _ = Describe("Webhook Validation", func() {
 
 			Context("there is an invalid selector", func() {
 				BeforeEach(func() {
-					supplyChain.Spec.Selectors = v1alpha1.Selectors{
+					supplyChain.Spec.LegacySelector = v1alpha1.LegacySelector{
 						SelectorMatchExpressions: []metav1.LabelSelectorRequirement{
 							{
 								Key:      "-my-label",
@@ -604,7 +604,7 @@ var _ = Describe("Webhook Validation", func() {
 		Context("selector is selecting on Selector", func() {
 			Context("there is a valid selector", func() {
 				BeforeEach(func() {
-					supplyChain.Spec.Selectors = v1alpha1.Selectors{
+					supplyChain.Spec.LegacySelector = v1alpha1.LegacySelector{
 						Selector: map[string]string{"my-label": "some-value"},
 					}
 				})
@@ -616,7 +616,7 @@ var _ = Describe("Webhook Validation", func() {
 
 			Context("there is an invalid selector", func() {
 				BeforeEach(func() {
-					supplyChain.Spec.Selectors = v1alpha1.Selectors{
+					supplyChain.Spec.LegacySelector = v1alpha1.LegacySelector{
 						Selector: map[string]string{"-my-label": "some-value"},
 					}
 				})
@@ -641,7 +641,7 @@ var _ = Describe("Webhook Validation", func() {
 					Name: "responsible-ops---default-params",
 				},
 				Spec: v1alpha1.SupplyChainSpec{
-					Selectors: v1alpha1.Selectors{
+					LegacySelector: v1alpha1.LegacySelector{
 						Selector: map[string]string{"foo": "bar"},
 					},
 					Resources: []v1alpha1.SupplyChainResource{

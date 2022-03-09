@@ -47,8 +47,6 @@ var _ = Describe("BestSelectorMatch", func() {
 			Expect(actual).To(Equal(tc.expectedSelectors))
 		},
 
-		// ---------- Label Selectors
-
 		Entry("empty selectors", testcase{
 			selectable: selectable{
 				labels: labels2.Set{}},
@@ -385,7 +383,7 @@ func (o selectable) GetLabels() map[string]string {
 type selector struct {
 	metav1.TypeMeta
 	metav1.ObjectMeta
-	v1alpha1.Selectors
+	v1alpha1.LegacySelector
 }
 
 func newSelector(labels labels2.Set, expressions []metav1.LabelSelectorRequirement, fields []v1alpha1.FieldSelectorRequirement) *selector {
@@ -401,7 +399,7 @@ func newSelectorWithID(name, kind string, labels labels2.Set, expressions []meta
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 		},
-		Selectors: v1alpha1.Selectors{
+		LegacySelector: v1alpha1.LegacySelector{
 			Selector:                 labels,
 			SelectorMatchExpressions: expressions,
 			SelectorMatchFields:      fields,
@@ -409,6 +407,6 @@ func newSelectorWithID(name, kind string, labels labels2.Set, expressions []meta
 	}
 }
 
-func (b *selector) GetSelectors() v1alpha1.Selectors {
-	return b.Selectors
+func (b *selector) GetSelectors() v1alpha1.LegacySelector {
+	return b.LegacySelector
 }

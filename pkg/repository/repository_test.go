@@ -1102,7 +1102,7 @@ spec:
 							Name: "supplychain-name",
 						},
 						Spec: v1alpha1.SupplyChainSpec{
-							Selectors: v1alpha1.Selectors{
+							LegacySelector: v1alpha1.LegacySelector{
 								SelectorMatchFields: []v1alpha1.FieldSelectorRequirement{
 									{
 										Key:      "spec.env[asdfasdfadkf3",
@@ -1142,7 +1142,7 @@ spec:
 							Name: "supplychain-name",
 						},
 						Spec: v1alpha1.SupplyChainSpec{
-							Selectors: v1alpha1.Selectors{
+							LegacySelector: v1alpha1.LegacySelector{
 								Selector: map[string]string{"foo": "bar"},
 							},
 						},
@@ -1175,7 +1175,7 @@ spec:
 							Name: "supplychain-name",
 						},
 						Spec: v1alpha1.SupplyChainSpec{
-							Selectors: v1alpha1.Selectors{
+							LegacySelector: v1alpha1.LegacySelector{
 								Selector: map[string]string{"foo": "bar"},
 							},
 						},
@@ -1186,7 +1186,7 @@ spec:
 							Name: "supplychain-name2",
 						},
 						Spec: v1alpha1.SupplyChainSpec{
-							Selectors: v1alpha1.Selectors{
+							LegacySelector: v1alpha1.LegacySelector{
 								Selector: map[string]string{"foo": "baz"},
 							},
 						},

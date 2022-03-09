@@ -172,6 +172,10 @@ func (o TemplateOption) GetSelector() Selector {
 	return o.Selector
 }
 
+// Selector is the collection of selection fields used congruously to specify
+// the selection of a template Option. In a future API revision, it will also
+// be used to specify selection of a target Owner.
+// See: LegacySelector
 type Selector struct { //FIXME: dont forget to validate any of 1....!
 	metav1.LabelSelector `json:",inline"`
 
@@ -234,10 +238,10 @@ type Output struct {
 	LastTransitionTime metav1.Time `json:"lastTransitionTime"`
 }
 
-// Selectors are the collection of selection fields used congruously to specify
-// the selection of a target Owner, or ensure the owner matches a selection for a template Option
-// TODO: when we switch to v1alpha2 we can rename this just "Selector"
-type Selectors struct {
+// LegacySelector is the collection of selection fields used congruously to specify
+// the selection of a target Owner. It is here to preserve compatibility with
+// Owners in v1alpha1, and will be replaced with Selector in a future release.
+type LegacySelector struct {
 	// Specifies the label key-value pairs used to select owners
 	// See: https://cartographer.sh/docs/v0.1.0/architecture/#selectors
 	// +optional

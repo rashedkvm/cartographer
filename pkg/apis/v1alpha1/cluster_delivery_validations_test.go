@@ -41,7 +41,7 @@ var _ = Describe("Delivery Validation", func() {
 					Namespace: "default",
 				},
 				Spec: v1alpha1.DeliverySpec{
-					Selectors: v1alpha1.Selectors{
+					LegacySelector: v1alpha1.LegacySelector{
 						Selector: map[string]string{"requires": "at-least-one"},
 					},
 
@@ -199,7 +199,7 @@ var _ = Describe("Delivery Validation", func() {
 					Namespace: "default",
 				},
 				Spec: v1alpha1.DeliverySpec{
-					Selectors: v1alpha1.Selectors{
+					LegacySelector: v1alpha1.LegacySelector{
 						Selector: map[string]string{"one-selector-of-any-kind": "is-needed"},
 					},
 					Resources: []v1alpha1.DeliveryResource{
@@ -522,7 +522,7 @@ var _ = Describe("Delivery Validation", func() {
 					Namespace: "default",
 				},
 				Spec: v1alpha1.DeliverySpec{
-					Selectors: v1alpha1.Selectors{
+					LegacySelector: v1alpha1.LegacySelector{
 						Selector:                 selector,
 						SelectorMatchExpressions: expressions,
 						SelectorMatchFields:      fields,
@@ -696,7 +696,7 @@ var _ = Describe("Delivery Validation", func() {
 		Context("selector is selecting on SelectorMatchFields", func() {
 			Context("valid field selector", func() {
 				BeforeEach(func() {
-					delivery.Spec.Selectors = v1alpha1.Selectors{
+					delivery.Spec.LegacySelector = v1alpha1.LegacySelector{
 						SelectorMatchFields: []v1alpha1.FieldSelectorRequirement{
 							{
 								Key:      "spec.params",
@@ -713,7 +713,7 @@ var _ = Describe("Delivery Validation", func() {
 
 			Context("invalid json path in field selector", func() {
 				BeforeEach(func() {
-					delivery.Spec.Selectors = v1alpha1.Selectors{
+					delivery.Spec.LegacySelector = v1alpha1.LegacySelector{
 						SelectorMatchFields: []v1alpha1.FieldSelectorRequirement{
 							{
 								Key:      "spec.params[0].{{}}",
@@ -729,7 +729,7 @@ var _ = Describe("Delivery Validation", func() {
 
 			Context("field selector is not in accepted list", func() {
 				BeforeEach(func() {
-					delivery.Spec.Selectors = v1alpha1.Selectors{
+					delivery.Spec.LegacySelector = v1alpha1.LegacySelector{
 						SelectorMatchFields: []v1alpha1.FieldSelectorRequirement{
 							{
 								Key:      "foo",
@@ -747,7 +747,7 @@ var _ = Describe("Delivery Validation", func() {
 		Context("selector is selecting on SelectorMatchExpressions", func() {
 			Context("there is a valid selector", func() {
 				BeforeEach(func() {
-					delivery.Spec.Selectors = v1alpha1.Selectors{
+					delivery.Spec.LegacySelector = v1alpha1.LegacySelector{
 						SelectorMatchExpressions: []metav1.LabelSelectorRequirement{
 							{
 								Key:      "my-label",
@@ -764,7 +764,7 @@ var _ = Describe("Delivery Validation", func() {
 
 			Context("there is an invalid selector", func() {
 				BeforeEach(func() {
-					delivery.Spec.Selectors = v1alpha1.Selectors{
+					delivery.Spec.LegacySelector = v1alpha1.LegacySelector{
 						SelectorMatchExpressions: []metav1.LabelSelectorRequirement{
 							{
 								Key:      "-my-label",
@@ -783,7 +783,7 @@ var _ = Describe("Delivery Validation", func() {
 		Context("selector is selecting on Selector", func() {
 			Context("there is a valid selector", func() {
 				BeforeEach(func() {
-					delivery.Spec.Selectors = v1alpha1.Selectors{
+					delivery.Spec.LegacySelector = v1alpha1.LegacySelector{
 						Selector: map[string]string{"my-label": "some-value"},
 					}
 				})
@@ -795,7 +795,7 @@ var _ = Describe("Delivery Validation", func() {
 
 			Context("there is an invalid selector", func() {
 				BeforeEach(func() {
-					delivery.Spec.Selectors = v1alpha1.Selectors{
+					delivery.Spec.LegacySelector = v1alpha1.LegacySelector{
 						Selector: map[string]string{"-my-label": "some-value"},
 					}
 				})

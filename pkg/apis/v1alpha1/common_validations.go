@@ -91,7 +91,7 @@ func validPath(path string, validPaths map[string]bool, validPrefixes []string) 
 	return false
 }
 
-func validateSelectors(selectors Selectors, validPaths map[string]bool, validPrefixes []string) error {
+func validateSelectors(selectors LegacySelector, validPaths map[string]bool, validPrefixes []string) error {
 	var err error
 
 	labelSelector := &metav1.LabelSelector{

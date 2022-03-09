@@ -25,7 +25,7 @@ func (c *ClusterDelivery) validateNewState() error {
 		return err
 	}
 
-	if err := validateSelectors(c.Spec.Selectors, ValidDeliverablePaths, ValidDeliverablePrefixes); err != nil {
+	if err := validateSelectors(c.Spec.LegacySelector, ValidDeliverablePaths, ValidDeliverablePrefixes); err != nil {
 		return err
 	}
 

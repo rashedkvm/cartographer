@@ -36,8 +36,6 @@ var _ = Describe("BestSelectorMatchIndices", func() {
 			Expect(actual).To(Equal(tc.exptectedSelectorIndices))
 		},
 
-		// ---------- Label Selectors
-
 		Entry("no selectors", testcase{
 			selectable: selectable{
 				labels: labels2.Set{}},
