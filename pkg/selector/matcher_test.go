@@ -15,15 +15,15 @@ var _ = Describe("BestSelectorMatchIndices", func() {
 
 	type testcase struct {
 		selectable               selector.Selectable
-		selectors                selectingObjectList
+		selectingObjects         selectingObjectList
 		exptectedSelectorIndices []int
 	}
 
 	DescribeTable(
-		"cases",
+		"non error-cases",
 		func(tc testcase) {
-			actual, _ := selector.BestSelectorMatchIndices(
-				tc.selectable, tc.selectors,
+			actual, err := selector.BestSelectorMatchIndices(
+				tc.selectable, tc.selectingObjects,
 			)
 
 			if tc.exptectedSelectorIndices == nil {
@@ -31,12 +31,14 @@ var _ = Describe("BestSelectorMatchIndices", func() {
 				return
 			}
 
+			Expect(err).NotTo(HaveOccurred())
+
 			Expect(actual).To(Equal(tc.exptectedSelectorIndices))
 		},
 
 		// ---------- Label Selectors
 
-		Entry("empty selectors", testcase{
+		Entry("no selectors", testcase{
 			selectable: selectable{
 				labels: labels2.Set{}},
 			exptectedSelectorIndices: nil,
@@ -48,7 +50,7 @@ var _ = Describe("BestSelectorMatchIndices", func() {
 					"type": "web",
 				},
 			},
-			selectors: selectingObjectList{
+			selectingObjects: selectingObjectList{
 				newSelectingObject(
 					labels2.Set{
 						"my": "label",
@@ -72,7 +74,7 @@ var _ = Describe("BestSelectorMatchIndices", func() {
 					"type": "web",
 					"test": "tekton",
 				}},
-			selectors: selectingObjectList{
+			selectingObjects: selectingObjectList{
 				newSelectingObject(
 					labels2.Set{
 						"type": "web",
@@ -89,7 +91,7 @@ var _ = Describe("BestSelectorMatchIndices", func() {
 				labels: labels2.Set{
 					"type": "web",
 				}},
-			selectors: selectingObjectList{
+			selectingObjects: selectingObjectList{
 				newSelectingObject(
 					labels2.Set{
 						"type": "web",
@@ -108,7 +110,7 @@ var _ = Describe("BestSelectorMatchIndices", func() {
 					"type": "web",
 					"test": "tekton",
 				}},
-			selectors: selectingObjectList{
+			selectingObjects: selectingObjectList{
 				newSelectingObject(
 					labels2.Set{
 						"type": "web",
@@ -145,7 +147,7 @@ var _ = Describe("BestSelectorMatchIndices", func() {
 					"scan":  "security",
 					"input": "image",
 				}},
-			selectors: selectingObjectList{
+			selectingObjects: selectingObjectList{
 				newSelectingObject(
 					labels2.Set{
 						"type": "atype",
@@ -174,7 +176,7 @@ var _ = Describe("BestSelectorMatchIndices", func() {
 					nil,
 				),
 			},
-			exptectedSelectorIndices: []int{1,2},
+			exptectedSelectorIndices: []int{1, 2},
 		}),
 
 		Entry("exact match with no extras", testcase{
@@ -184,7 +186,7 @@ var _ = Describe("BestSelectorMatchIndices", func() {
 					"test": "tekton",
 					"scan": "security",
 				}},
-			selectors: selectingObjectList{
+			selectingObjects: selectingObjectList{
 				newSelectingObject(
 					labels2.Set{
 						"type": "atype",
@@ -224,7 +226,7 @@ var _ = Describe("BestSelectorMatchIndices", func() {
 					Age:   4,
 				},
 			},
-			selectors: selectingObjectList{
+			selectingObjects: selectingObjectList{
 				newSelectingObject(
 					nil,
 					nil,
@@ -239,6 +241,54 @@ var _ = Describe("BestSelectorMatchIndices", func() {
 			},
 			exptectedSelectorIndices: []int{0},
 		}),
+
+		Entry("match selectors when json path is not found, don't error", testcase{
+			selectable: selectable{
+				Spec: Spec{
+					Color:  "red",
+					Age:    4,
+					Bucket: []Thing{{Name: "morko"}},
+				},
+			},
+			selectingObjects: selectingObjectList{
+				newSelectingObject(
+					nil,
+					nil,
+					fields{
+						{
+							Key:      "spec.bucket[?(@.name==\"marco\")].name",
+							Operator: "NotIn",
+							Values:   []string{"green", "blue"},
+						},
+					},
+				),
+			},
+			exptectedSelectorIndices: nil,
+		}),
+		//FIXME: should this case matter? it's broken
+		//FEntry("match selectors when json path is not found, don't error", testcase{
+		//	selectable: selectable{
+		//		Spec: Spec{
+		//			Color:  "red",
+		//			Age:    4,
+		//			Map: map[string]string{"name": "morko"},
+		//		},
+		//	},
+		//	selectors: selectingObjectList{
+		//		newSelectingObject(
+		//			nil,
+		//			nil,
+		//			fields{
+		//				{
+		//					Key:      "spec.map.marco",
+		//					Operator: "NotIn",
+		//					Values:   []string{"green", "blue"},
+		//				},
+		//			},
+		//		),
+		//	},
+		//	exptectedSelectorIndices: []int{},
+		//}),
 	)
 
 	Describe("malformed selectors", func() {
@@ -322,8 +372,14 @@ var _ = Describe("BestSelectorMatchIndices", func() {
 type fields []v1alpha1.FieldSelectorRequirement
 
 type Spec struct {
-	Color string `json:"color"`
-	Age   int    `json:"age"`
+	Color  string            `json:"color"`
+	Age    int               `json:"age"`
+	Bucket []Thing           `json:"bucket"`
+	Map    map[string]string `json:"map"`
+}
+
+type Thing struct {
+	Name string `json:"name"`
 }
 
 type selectable struct {

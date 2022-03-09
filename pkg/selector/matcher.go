@@ -3,6 +3,7 @@ package selector
 import (
 	"fmt"
 	"github.com/vmware-tanzu/cartographer/pkg/apis/v1alpha1"
+	"github.com/vmware-tanzu/cartographer/pkg/eval"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 )
@@ -38,11 +39,6 @@ type EnumerableSelectingObjects interface {
 }
 
 func BestSelectorMatchIndices(selectable Selectable, selectingObjects EnumerableSelectingObjects) ([]int, SelectorMatchError) {
-
-	//	if len(selectingObjects) == 0 { //FIXME: is this behavior still preserved?
-	//		return nil, nil, nil
-	//	}
-
 	var matchingSelectorIndices = map[int][]int{}
 	var highWaterMark = 0
 
@@ -85,13 +81,8 @@ func BestSelectorMatchIndices(selectable Selectable, selectingObjects Enumerable
 		matchScore += len(selectors.MatchFields)
 
 		// -- decision time
-		if matchScore > 0 {
-			if matchingSelectorIndices[matchScore] == nil { //FIXME: needed?
-				matchingSelectorIndices[matchScore] = []int{}
-			}
-			if matchScore > highWaterMark {
-				highWaterMark = matchScore
-			}
+		if matchScore > 0 && matchScore >= highWaterMark {
+			highWaterMark = matchScore
 			matchingSelectorIndices[matchScore] = append(matchingSelectorIndices[matchScore], idx)
 		}
 		return nil
@@ -107,9 +98,11 @@ func BestSelectorMatchIndices(selectable Selectable, selectingObjects Enumerable
 func matchesAllFields(source interface{}, requirements []v1alpha1.FieldSelectorRequirement) (bool, error) {
 	for _, requirement := range requirements {
 		match, err := Matches(requirement, source)
-		//TODO: what happens if its JsonPathDoesNotExistError?
 		if err != nil {
-			return false, fmt.Errorf("unable to match field requirement with key [%s] operator [%s] values [%v]: %w", requirement.Key, requirement.Operator, requirement.Values, err)
+			if _, ok := err.(eval.JsonPathDoesNotExistError); !ok {
+				return false, fmt.Errorf("unable to match field requirement with key [%s] operator [%s] values [%v]: %w", requirement.Key, requirement.Operator, requirement.Values, err)
+			}
+
 		}
 		if !match {
 			return false, nil
