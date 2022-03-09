@@ -665,7 +665,7 @@ var _ = Describe("Delivery Validation", func() {
 								Options: []v1alpha1.TemplateOption{
 									{
 										Name: "source-1",
-										Selector: v1alpha1.OptionSelector{
+										Selector: v1alpha1.Selector{
 											MatchFields: []v1alpha1.FieldSelectorRequirement{
 												{
 													Key:      "spec.source.git.url",
@@ -676,7 +676,7 @@ var _ = Describe("Delivery Validation", func() {
 									},
 									{
 										Name: "source-2",
-										Selector: v1alpha1.OptionSelector{
+										Selector: v1alpha1.Selector{
 											MatchFields: []v1alpha1.FieldSelectorRequirement{
 												{
 													Key:      "spec.source.git.url",
