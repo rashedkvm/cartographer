@@ -543,7 +543,7 @@ var _ = Describe("Resource", func() {
 					Expect(template).To(BeNil())
 
 					Expect(err).To(HaveOccurred())
-					Expect(err.Error()).To(ContainSubstring(`error evaluating selector for template option [template-not-chosen] for resource [resource-1] in [ClusterSupplyChain/supply-chain-name]`))
+					Expect(err.Error()).To(ContainSubstring(`error matching against template option [template-not-chosen] for resource [resource-1] in supply chain [supply-chain-name]`))
 					Expect(err.Error()).To(ContainSubstring(`failed to evaluate selector matchFields: unable to match field requirement with key [spec.env[?(@.name=="some-name")].bad] operator [Exists] values [[]]: evaluate: failed to find results: bad is not found`))
 				})
 			})

@@ -180,11 +180,12 @@ func (r *resourceRealizer) findMatchingTemplateName(resource *v1alpha1.SupplyCha
 	bestMatchingTemplateOptionsIndices, err := selector.BestSelectorMatchIndices(r.workload, TemplateOptionList(resource.TemplateRef.Options))
 
 	if err != nil {
-		return "", fmt.Errorf("error evaluating selector for template option [%s] for resource [%s] in [ClusterSupplyChain/%s]: %w",
-			resource.TemplateRef.Options[err.GetSelectingObjectIndex()].Name,
-			resource.Name,
-			supplyChainName,
-			err)
+		return "", ResolveTemplateOptionError{
+			Err:             err,
+			SupplyChainName: supplyChainName,
+			Resource:        resource,
+			OptionName:      resource.TemplateRef.Options[err.GetSelectingObjectIndex()].Name,
+		 }
 	}
 
 	if len(bestMatchingTemplateOptionsIndices) != 1 {
